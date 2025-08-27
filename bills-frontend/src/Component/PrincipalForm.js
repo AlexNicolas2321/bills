@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { format } from 'date-fns';
 
-export default function PrincipalForm({ selectedDate, principal, onCreated }) {
+export default function PrincipalForm({ selectedDate, principal, onCreated, onDelete, onUpdate }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -27,33 +28,28 @@ export default function PrincipalForm({ selectedDate, principal, onCreated }) {
       return;
     }
 
+    const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+    const principalData = {
+      title: title.trim(),
+      description: description.trim(),
+      date: formattedDate,
+    };
+
     try {
-      // Formatear la fecha para el backend (YYYY-MM-DD)
-      const formattedDate = selectedDate.toISOString().split('T')[0];
-      
-      const principalData = {
-        title: title.trim(),
-        description: description.trim(),
-        date: formattedDate,
-      };
-
-      const response = await axios.post("http://localhost:8080/principal", principalData);
-
-      // Limpiar campos solo si no estamos editando
-      if (!isEditing) {
+      if (isEditing && onUpdate) {
+        // Actualizar
+        await onUpdate(principalData);
+      } else if (!isEditing && onCreated) {
+        // Crear
+        await onCreated(principalData);
         setTitle("");
         setDescription("");
       }
-
-      // Refrescar lista en App
-      if (onCreated) onCreated(response.data);
     } catch (error) {
       console.error("Error saving principal:", error);
       alert("Error saving principal. Please try again.");
     }
   };
-
-  const handleDelete = async () => {};
 
   return (
     <div>
@@ -73,7 +69,16 @@ export default function PrincipalForm({ selectedDate, principal, onCreated }) {
           Date: {selectedDate.toLocaleDateString()}
         </div>
         <div className="flex gap-2">
-          <button type="submit">Create</button>
+          <button type="submit">{isEditing ? "Update" : "Create"}</button>
+          {isEditing && onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(principal.id)}
+              style={{ backgroundColor: "red", color: "white" }}
+            >
+              Delete
+            </button>
+          )}
         </div>
       </form>
     </div>

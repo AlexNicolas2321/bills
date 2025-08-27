@@ -34,6 +34,8 @@ export default function ExpenseForm({ onCreate, principalId }) {
     }
   };
 
+  
+
   return (
     <div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-2 mb-4">

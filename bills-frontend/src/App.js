@@ -10,12 +10,11 @@ function App() {
   const [expenses, setExpenses] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [principalForDay, setPrincipalForDay] = useState(null);
-  const [expensesForDay, setExpensesForDay] = useState([]);  
+  const [expensesForDay, setExpensesForDay] = useState([]);
 
   useEffect(() => {
     fetchData();
   }, []);
-
 
   const fetchData = async () => {
     try {
@@ -24,76 +23,121 @@ function App() {
         axios.get("http://localhost:8080/expenses"),
       ]);
 
-        const principalsWithDate = resPrincipals.data.map(p => {
+      // Transformar string de fecha a objeto Date
+      const principalsWithDate = resPrincipals.data.map(p => {
         const dateParts = p.date.split('-').map(Number);
-        return { ...p, date: new Date(dateParts[0], dateParts[1]-1, dateParts[2]) };
+        return { ...p, date: new Date(dateParts[0], dateParts[1] - 1, dateParts[2]) };
       });
 
       setPrincipals(principalsWithDate);
       setExpenses(resExpenses.data);
 
-      // Recalcular selección actual con los nuevos datos
-      const p = principalsWithDate.find(
-        (pp) => pp.date && pp.date.toDateString() === selectedDate.toDateString()
-      );
-      setPrincipalForDay(p || null);
-      const related = p
-        ? resExpenses.data.filter((e) => e.principal && e.principal.id === p.id)
-        : [];
-      setExpensesForDay(related);
+      // Actualizar principal del día seleccionado
+      updatePrincipalForDay(principalsWithDate, resExpenses.data, selectedDate);
+
     } catch (error) {
       console.error("Error fetching data:", error);
-    } 
+    }
   };
 
-   // Cada vez que seleccionamos un día en el calendario
-   const handleDateChange = ({ date, principal, expenses }) => {
-    setSelectedDate(date);
-    setPrincipalForDay(principal);
-    setExpensesForDay(expenses);
+  const updatePrincipalForDay = (allPrincipals, allExpenses, date) => {
+    const p = allPrincipals.find(
+      pp => pp.date && pp.date.toDateString() === date.toDateString()
+    );
+    setPrincipalForDay(p || null);
+
+    const relatedExpenses = p
+      ? allExpenses.filter(e => e.principal && e.principal.id === p.id)
+      : [];
+    setExpensesForDay(relatedExpenses);
   };
- 
+
+  const handleDateChange = ({ date }) => {
+    setSelectedDate(date);
+    updatePrincipalForDay(principals, expenses, date);
+  };
+
+  // Crear o actualizar principal
+  const handleUpdatePrincipal = async (updatedData) => {
+    if (!principalForDay) return;
+    try {
+      await axios.put(`http://localhost:8080/principal/${principalForDay.id}`, updatedData);
+      await fetchData();
+    } catch (error) {
+      console.error("Error updating principal:", error);
+      alert("Error updating principal. Try again.");
+    }
+  };
+
+  const handleDeletePrincipal = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this principal?")) return;
+
+    try {
+      await axios.delete(`http://localhost:8080/principal/${id}`);
+      await fetchData();
+    } catch (error) {
+      console.error("Error deleting principal:", error);
+      alert("Error deleting principal. Please try again.");
+    }
+  };
+
+
+  // Crear principal
+const handleCreatePrincipal = async (newData) => {
+  try {
+    await axios.post("http://localhost:8080/principal", newData);
+    await fetchData(); // refrescar después de crear
+  } catch (error) {
+    console.error("Error creating principal:", error);
+    alert("Error creating principal. Please try again.");
+  }
+};
+
   return (
     <div>
-    <h1>Calendar</h1>
-    <PrincipalCalendar
-      principals={principals}
-      expenses={expenses}
-      onDateChange={handleDateChange}
-    />
-
-    <h1>Principal</h1>
-    <PrincipalForm
-      selectedDate={selectedDate}
-      principal={principalForDay}
-      onCreated={fetchData} // refresca la lista después de crear/editar
-    />
-
-    <h1>Expenses</h1>
-    {principalForDay ? (
-      <ExpenseForm
-        principalId={principalForDay.id}
-        onCreate={fetchData} // refresca la lista después de crear
+      <h1>Calendar</h1>
+      <PrincipalCalendar
+        principals={principals}
+        expenses={expenses}
+        onDateChange={handleDateChange}
       />
-    ) : (
-      <p>Create a Principal for this day first.</p>
-    )}
 
-    {principalForDay && (
-      <div style={{ marginTop: 12 }}>
-        <h3>Expenses of the day</h3>
-        {expensesForDay.length ? (
-          <ul>
-            {expensesForDay.map((exp) => (
-              <li key={exp.id}>{exp.description} - {Number(exp.amount).toFixed(2)}€</li>
-            ))}
-          </ul>
-        ) : (
-          <p>There are not expenses for this day</p>
-        )}
-      </div>
-    )}
-  </div>
+      <h1>Principal</h1>
+      <PrincipalForm
+        selectedDate={selectedDate}
+        principal={principalForDay}
+        onCreated={handleCreatePrincipal}
+        onDelete={handleDeletePrincipal}
+        onUpdate={handleUpdatePrincipal}
+      />
+
+      <h1>Expenses</h1>
+      {principalForDay ? (
+        <ExpenseForm
+          principalId={principalForDay.id}
+          onCreate={fetchData}
+        />
+      ) : (
+        <p>Create a Principal for this day first.</p>
+      )}
+
+      {principalForDay && (
+        <div style={{ marginTop: 12 }}>
+          <h3>Expenses of the day</h3>
+          {expensesForDay.length ? (
+            <ul>
+              {expensesForDay.map((exp) => (
+                <li key={exp.id}>
+                  {exp.description} - {Number(exp.amount).toFixed(2)}€
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>There are not expenses for this day</p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
