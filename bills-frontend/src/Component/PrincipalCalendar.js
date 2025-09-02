@@ -16,7 +16,7 @@ export default function PrincipalCalendar({ principals, expenses, onDateChange }
       ? expenses.filter(e => e.principal && e.principal.id === principal.id)
       : [];
 
-    // Avisamos a App de la selección
+    // app will know the changes with this 
     onDateChange?.({
       date,
       principal: principal || null,

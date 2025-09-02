@@ -1,40 +1,30 @@
 import { useState } from "react";
-import axios from "axios";
 
-export default function ExpenseForm({ onCreate, principalId }) {
+export default function ExpenseForm({ principalId, onCreate, onUpdate, onDelete, expensesForDay }) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!description.trim()) {
-      alert("Description is required");
-      return;
-    }
-    if (!amount || parseFloat(amount) <= 0) {
-      alert("Amount must be greater than 0");
-      return;
-    }
+    if (!description.trim()) return alert("Description is required");
+    if (!amount || parseFloat(amount) <= 0) return alert("Amount must be greater than 0");
+
+    const newExpense = {
+      description: description.trim(),
+      amount: parseFloat(amount),
+      principal: { id: principalId },
+    };
 
     try {
-      await axios.post("http://localhost:8080/expenses", {
-        description: description.trim(),
-        amount: parseFloat(amount),
-        principal: { id: principalId },
-      });
-
+      if (onCreate) await onCreate(newExpense);
       setDescription("");
       setAmount("");
-
-      if (onCreate) await onCreate();
     } catch (error) {
       console.error("Error creating expense:", error);
       alert("Error creating expense. Please try again.");
     }
   };
-
-  
 
   return (
     <div>
@@ -57,6 +47,43 @@ export default function ExpenseForm({ onCreate, principalId }) {
         />
         <button type="submit">Create Expense</button>
       </form>
+
+      <ul>
+        {expensesForDay.map((exp) => (
+          <li key={exp.id} className="flex justify-between items-center gap-2 mb-1">
+            <span>{exp.description} - {Number(exp.amount).toFixed(2)}€</span>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => {
+
+                  const newDescription = prompt("New description", exp.description);
+                  const newAmount = parseFloat(prompt("New amount", exp.amount));
+                  if (newDescription && newAmount > 0) {
+                    onUpdate(exp.id, {
+                      description: newDescription,
+                      amount: newAmount,
+                      principal: { id: principalId }
+                    });
+                  }
+              
+              
+              }}
+                style={{ backgroundColor: "blue", color: "white" }}
+              >
+                Update
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(exp.id)}
+                style={{ backgroundColor: "red", color: "white" }}
+              >
+                Delete
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

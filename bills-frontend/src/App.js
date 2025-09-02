@@ -57,7 +57,7 @@ function App() {
     updatePrincipalForDay(principals, expenses, date);
   };
 
-  // Crear o actualizar principal
+  // Update principal
   const handleUpdatePrincipal = async (updatedData) => {
     if (!principalForDay) return;
     try {
@@ -82,16 +82,53 @@ function App() {
   };
 
 
-  // Crear principal
-const handleCreatePrincipal = async (newData) => {
-  try {
-    await axios.post("http://localhost:8080/principal", newData);
-    await fetchData(); // refrescar después de crear
-  } catch (error) {
-    console.error("Error creating principal:", error);
-    alert("Error creating principal. Please try again.");
+  // Create Principal
+  const handleCreatePrincipal = async (newData) => {
+    try {
+      await axios.post("http://localhost:8080/principal", newData);
+      await fetchData(); // update data
+    } catch (error) {
+      console.error("Error creating principal:", error);
+      alert("Error creating principal. Please try again.");
+    }
+  };
+
+
+  // Expenses
+
+  const addExpense = async (newExpense) => {
+    try {
+      await axios.post("http://localhost:8080/expenses", newExpense);
+      await fetchData();
+    } catch (error) {
+      console.error("Error creating expense:", error);
+      alert("Error creating expense. Please try again.");
+    }
+  };
+
+
+  const updateExpense = async (id, expenseData) => {
+
+    try {
+      await axios.put(`http://localhost:8080/expenses/${id}`, expenseData);
+      await fetchData();
+    } catch (error) {
+      console.error("Error updating expense:", error);
+      alert("Error updating expense. Please try again.");
+    }
   }
-};
+
+  const deleteExpense = async (id) => {
+
+    try {
+      await axios.delete(`http://localhost:8080/expenses/${id}`);
+      await fetchData();
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+      alert("Error deleting expense. Please try again.");
+    }
+  }
+
 
   return (
     <div>
@@ -100,6 +137,7 @@ const handleCreatePrincipal = async (newData) => {
         principals={principals}
         expenses={expenses}
         onDateChange={handleDateChange}
+
       />
 
       <h1>Principal</h1>
@@ -115,28 +153,16 @@ const handleCreatePrincipal = async (newData) => {
       {principalForDay ? (
         <ExpenseForm
           principalId={principalForDay.id}
-          onCreate={fetchData}
+          onCreate={addExpense}
+          onUpdate={updateExpense}
+          onDelete={deleteExpense}
+          expensesForDay={expensesForDay}
         />
       ) : (
         <p>Create a Principal for this day first.</p>
       )}
 
-      {principalForDay && (
-        <div style={{ marginTop: 12 }}>
-          <h3>Expenses of the day</h3>
-          {expensesForDay.length ? (
-            <ul>
-              {expensesForDay.map((exp) => (
-                <li key={exp.id}>
-                  {exp.description} - {Number(exp.amount).toFixed(2)}€
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>There are not expenses for this day</p>
-          )}
-        </div>
-      )}
+      
     </div>
   );
 }

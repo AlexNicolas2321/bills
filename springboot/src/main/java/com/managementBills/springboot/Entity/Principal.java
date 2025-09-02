@@ -25,7 +25,7 @@ public class Principal {
     @Column(nullable = true)
     private LocalDate date;  // useful for calendar
 
-    @OneToMany(mappedBy = "principal", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "principal", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Expense> expenses;
 }
